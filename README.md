@@ -74,4 +74,4 @@ class User
 
 For Linux mkpentity
 
-For Windows mkpentity.exx
+For Windows mkpentity.exe
