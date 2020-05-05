@@ -8,9 +8,9 @@ import (
 	"strings"
 )
 
-type Names []N
+type Columns []Column
 
-type N struct {
+type Column struct {
 	Name    string
 	Types   string
 	Comment string
@@ -18,7 +18,7 @@ type N struct {
 
 func main() {
 	var class string
-	var ns Names
+	var cs Columns
 
 	flag.Parse()
 	args := flag.Args()
@@ -29,12 +29,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	for i, n := range args {
+	for i, arg := range args {
 		if i == 0 {
-			class = n
+			class = arg
 		} else {
-			f := strings.Index(n, ":")
-			l := strings.LastIndex(n, ":")
+			f := strings.Index(arg, ":")
+			l := strings.LastIndex(arg, ":")
 			if f == -1 {
 				err := fmt.Errorf(": フォーマットが間違ってるよ")
 				fmt.Fprint(os.Stderr, err)
@@ -42,11 +42,11 @@ func main() {
 			}
 
 			if f == l {
-				n := N{Name: n[:f], Types: n[f+1:]}
-				ns = append(ns, n)
+				c := Column{Name: arg[:f], Types: arg[f+1:]}
+				cs = append(cs, c)
 			} else {
-				n := N{Name: n[:f], Types: n[f+1 : l], Comment: n[l+1:]}
-				ns = append(ns, n)
+				c := Column{Name: arg[:f], Types: arg[f+1 : l], Comment: arg[l+1:]}
+				cs = append(cs, c)
 			}
 		}
 	}
@@ -55,10 +55,10 @@ func main() {
 	var setters []string
 	var getters []string
 
-	for _, n := range ns {
-		params = append(params, makeParam(n.Name, n.Types, n.Comment))
-		setters = append(setters, makeSetter(n.Name, n.Types))
-		getters = append(getters, makeGetter(n.Name, n.Types))
+	for _, c := range cs {
+		params = append(params, makeParam(c.Name, c.Types, c.Comment))
+		setters = append(setters, makeSetter(c.Name, c.Types))
+		getters = append(getters, makeGetter(c.Name, c.Types))
 	}
 
 	php := "<?php\n\n"
@@ -107,7 +107,12 @@ func makeLeadClass(name string) string {
 
 func makeParam(name string, types string, comment string) string {
 
-	t := "    /** @var %s %s */\n    private $%s;\n"
+	var t string
+	if comment == "" {
+		t = "    /** @var %s %s*/\n    private $%s;\n"
+	} else {
+		t = "    /** @var %s %s */\n    private $%s;\n"
+	}
 	s := fmt.Sprintf(t, types, comment, name)
 	return s
 
@@ -120,7 +125,7 @@ func makeGetter(name string, types string) string {
 	method := m + m1
 
 	t := "    /**\n     * %s Getter\n     * \n     * @return %s %s\n     */\n    public function get%s()\n    {\n        return $this->%s;\n    }\n"
-	s := fmt.Sprintf(t, method, types, name, method, name)
+	s := fmt.Sprintf(t, name, types, name, method, name)
 	return s
 }
 
@@ -131,6 +136,6 @@ func makeSetter(name string, types string) string {
 	method := m + m1
 
 	t := "    /**\n     * %s Setter\n     * \n     * @param %s %s\n     */\n    public function set%s($%s)\n    {\n        $this->%s = $%s;\n    }\n"
-	s := fmt.Sprintf(t, method, types, name, method, name, name, name)
+	s := fmt.Sprintf(t, name, types, name, method, name, name, name)
 	return s
 }
